@@ -1,5 +1,5 @@
 import type { Line, Lines, Options } from '../types/common'
-import { formatTimeLabel, getNow, noop, parseExtendedLyric, tagRegMap, timeExp, timeFieldExp, timeoutTools } from './utils'
+import { formatTimeLabel, getNow, noop, parseExtendedLyric, parseWordLyric, tagRegMap, timeExp, timeFieldExp, timeoutTools } from './utils'
 
 type TagMapKeys = keyof typeof tagRegMap
 type NonNullableOptions = Required<Options>
@@ -107,9 +107,12 @@ export default class Lyric {
             else if (timeArr.length < 3) for (let i = 3 - timeArr.length; i--;) timeArr.unshift('0')
             if (timeArr[2].includes('.')) timeArr.splice(2, 1, ...timeArr[2].split('.'))
 
+            const { words, pureText } = parseWordLyric(text)
+
             linesMap[timeStr] = {
               time: parseInt(timeArr[0]) * 60 * 60 * 1000 + parseInt(timeArr[1]) * 60 * 1000 + parseInt(timeArr[2]) * 1000 + parseInt(timeArr[3] || '0'),
-              text,
+              text: pureText,
+              words,
               extendedLyrics: [],
             }
           }
@@ -119,9 +122,7 @@ export default class Lyric {
 
     for (const lrc of this.extendedLyrics) parseExtendedLyric(linesMap, lrc)
     this.lines = Object.values(linesMap)
-    this.lines.sort((a, b) => {
-      return a.time - b.time
-    })
+    this.lines.sort((a, b) => a.time - b.time)
     this.maxLine = this.lines.length - 1
   }
 
@@ -143,7 +144,6 @@ export default class Lyric {
 
   private _refresh() {
     this.curLineNum++
-    // console.log('curLineNum time', this.lines[this.curLineNum].time)
     if (this.curLineNum >= this.maxLine) { this._handleMaxLine(); return }
 
     let curLine = this.lines[this.curLineNum]
@@ -175,10 +175,6 @@ export default class Lyric {
     this._refresh()
   }
 
-  /**
-   * Play lyric
-   * @param time play time, unit: ms
-   */
   play(curTime = 0) {
     if (!this.lines.length) return
     this.pause()
@@ -186,16 +182,12 @@ export default class Lyric {
 
     this._performanceTime = getNow() - Math.trunc(this.tags.offset + this.offset)
     this._startTime = curTime
-    // this._offset = this.tags.offset + this.offset
 
     this.curLineNum = this._findCurLineNum(this._currentTime()) - 1
 
     this._refresh()
   }
 
-  /**
-   * Pause lyric
-   */
   pause() {
     if (!this.isPlay) return
     this.isPlay = false
@@ -208,10 +200,6 @@ export default class Lyric {
     }
   }
 
-  /**
-   * Set playback rate
-   * @param playbackRate playback rate
-   */
   setPlaybackRate(playbackRate: NonNullableOptions['playbackRate']) {
     this._playbackRate = playbackRate
     if (!this.lines.length) return
@@ -219,13 +207,7 @@ export default class Lyric {
     this.play(this._currentTime())
   }
 
-  /**
-   * Set lyric
-   * @param lyricStr lyric file text
-   * @param extendedLyricStrs extended lyric file text array, for example lyric translations
-   */
   setLyric(lyric: NonNullableOptions['lyric'], extendedLyrics: NonNullableOptions['extendedLyrics'] = []) {
-    // console.log(extendedLyrics)
     if (this.isPlay) this.pause()
     this.lyric = lyric
     this.extendedLyrics = extendedLyrics

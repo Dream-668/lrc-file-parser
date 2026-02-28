@@ -1,6 +1,6 @@
 {
   "name": "lrc-file-parser",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Javascript-based lrc file parser",
   "main": "./dist/lrc-file-parser.js",
   "module": "./dist/lrc-file-parser.esm.js",
@@ -22,19 +22,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lyswhut/lrc-file-parser.git"
+    "url": "git+https://github.com/Dream-668/lrc-file-parser.git"
   },
   "keywords": [
     "javascript",
     "lrc",
     "web"
   ],
-  "author": "lyswhut",
+  "author": "Dream-668",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lyswhut/lrc-file-parser/issues"
+    "url": "https://github.com/Dream-668/lrc-file-parser/issues"
   },
-  "homepage": "https://github.com/lyswhut/lrc-file-parser#readme",
+  "homepage": "https://github.com/Dream-668/lrc-file-parser#readme",
   "devDependencies": {
     "@babel/core": "^7.21.4",
     "@babel/plugin-proposal-class-properties": "^7.18.6",

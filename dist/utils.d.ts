@@ -1,4 +1,4 @@
-import type { Line } from '../types/common';
+import type { Line, Word } from '../types/common';
 export declare const timeFieldExp: RegExp;
 export declare const timeExp: RegExp;
 export type LyricMap = Map<string, string[]>;
@@ -23,3 +23,7 @@ export declare const timeoutTools: {
 };
 export declare const formatTimeLabel: (label: string) => string;
 export declare const parseExtendedLyric: (lrcLinesMap: Record<string, Line>, extendedLyric: string) => void;
+export declare const parseWordLyric: (lineText: string) => {
+    words: Word[];
+    pureText: string;
+};

@@ -1,5 +1,4 @@
-import type { Line } from '../types/common'
-
+import type { Line, Word } from '../types/common'
 
 export const timeFieldExp = /^(?:\[[\d:.]+\])+/g
 export const timeExp = /\d{1,3}(:\d{1,3}){0,2}(?:\.\d{1,3})/g
@@ -16,41 +15,6 @@ export const tagRegMap = {
 
 export const getNow = typeof performance == 'object' && performance.now ? performance.now.bind(performance) : Date.now.bind(Date)
 
-// const timeoutTools = {
-//   expected: 0,
-//   interval: 0,
-//   timeoutId: null,
-//   callback: null,
-//   step() {
-//     var dt = getNow() - this.expected // the drift (positive for overshooting)
-//     if (dt > this.interval) {
-//         // something really bad happened. Maybe the browser (tab) was inactive?
-//         // possibly special handling to avoid futile "catch up" run
-//     }
-//     // … // do what is to be done
-
-//     this.callback()
-
-//     this.expected += this.interval
-//     this.timeoutId = setTimeout(() => {
-//       this.step()
-//     }, Math.max(0, this.interval - dt)) // take into account drift
-//   },
-//   start(callback = () => {}, interval = 1000) {
-//     this.callback = callback
-//     this.interval = interval
-//     this.expected = getNow() + interval
-//     this.timeoutId = setTimeout(() => {
-//       this.step()
-//     } ,interval)
-//   },
-//   stop() {
-//     if (this.timeoutId == null) return
-//     clearTimeout(this.timeoutId)
-//     this.timeoutId = null
-//   }
-// }
-
 export const noop = function() {}
 export const timeoutTools = {
   invokeTime: 0,
@@ -63,7 +27,6 @@ export const timeoutTools = {
     this.animationFrameId = window.requestAnimationFrame(() => {
       this.animationFrameId = null
       let diff = this.invokeTime - getNow()
-      // console.log('diff', diff)
       if (diff > 0) {
         if (diff < this.thresholdTime) {
           this.run()
@@ -74,16 +37,12 @@ export const timeoutTools = {
           this.run()
         }, diff - this.thresholdTime)
       }
-
-      // console.log('diff', diff)
       this.callback!(diff)
     })
   },
   start(callback = noop, timeout = 0) {
-    // console.log(timeout)
     this.callback = callback
     this.invokeTime = getNow() + timeout
-
     this.run()
   },
   clear() {
@@ -127,4 +86,31 @@ export const parseExtendedLyric = (lrcLinesMap: Record<string, Line>, extendedLy
       }
     }
   }
+}
+
+const wordTagRxp = /<(\d+),(\d+)>/g
+const wordSplitRxp = /(?=<\d+,\d+>)/g
+
+export const parseWordLyric = (lineText: string): { words: Word[], pureText: string } => {
+  const parts = lineText.split(wordSplitRxp)
+  const words: Word[] = []
+  let pureText = ''
+
+  for (const part of parts) {
+    const match = wordTagRxp.exec(part)
+    if (match) {
+      const start = parseInt(match[1], 10)
+      const duration = parseInt(match[2], 10)
+      const text = part.replace(wordTagRxp, '')
+      if (text) {
+        words.push({ text, start, duration })
+        pureText += text
+      }
+    } else {
+      pureText += part
+    }
+    wordTagRxp.lastIndex = 0
+  }
+
+  return { words, pureText }
 }

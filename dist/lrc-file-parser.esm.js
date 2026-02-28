@@ -8,38 +8,6 @@ const tagRegMap = {
     by: 'by',
 };
 const getNow = typeof performance == 'object' && performance.now ? performance.now.bind(performance) : Date.now.bind(Date);
-// const timeoutTools = {
-//   expected: 0,
-//   interval: 0,
-//   timeoutId: null,
-//   callback: null,
-//   step() {
-//     var dt = getNow() - this.expected // the drift (positive for overshooting)
-//     if (dt > this.interval) {
-//         // something really bad happened. Maybe the browser (tab) was inactive?
-//         // possibly special handling to avoid futile "catch up" run
-//     }
-//     // … // do what is to be done
-//     this.callback()
-//     this.expected += this.interval
-//     this.timeoutId = setTimeout(() => {
-//       this.step()
-//     }, Math.max(0, this.interval - dt)) // take into account drift
-//   },
-//   start(callback = () => {}, interval = 1000) {
-//     this.callback = callback
-//     this.interval = interval
-//     this.expected = getNow() + interval
-//     this.timeoutId = setTimeout(() => {
-//       this.step()
-//     } ,interval)
-//   },
-//   stop() {
-//     if (this.timeoutId == null) return
-//     clearTimeout(this.timeoutId)
-//     this.timeoutId = null
-//   }
-// }
 const noop = function () { };
 const timeoutTools = {
     invokeTime: 0,
@@ -51,7 +19,6 @@ const timeoutTools = {
         this.animationFrameId = window.requestAnimationFrame(() => {
             this.animationFrameId = null;
             let diff = this.invokeTime - getNow();
-            // console.log('diff', diff)
             if (diff > 0) {
                 if (diff < this.thresholdTime) {
                     this.run();
@@ -62,12 +29,10 @@ const timeoutTools = {
                     this.run();
                 }, diff - this.thresholdTime);
             }
-            // console.log('diff', diff)
             this.callback(diff);
         });
     },
     start(callback = noop, timeout = 0) {
-        // console.log(timeout)
         this.callback = callback;
         this.invokeTime = getNow() + timeout;
         this.run();
@@ -113,6 +78,30 @@ const parseExtendedLyric = (lrcLinesMap, extendedLyric) => {
             }
         }
     }
+};
+const wordTagRxp = /<(\d+),(\d+)>/g;
+const wordSplitRxp = /(?=<\d+,\d+>)/g;
+const parseWordLyric = (lineText) => {
+    const parts = lineText.split(wordSplitRxp);
+    const words = [];
+    let pureText = '';
+    for (const part of parts) {
+        const match = wordTagRxp.exec(part);
+        if (match) {
+            const start = parseInt(match[1], 10);
+            const duration = parseInt(match[2], 10);
+            const text = part.replace(wordTagRxp, '');
+            if (text) {
+                words.push({ text, start, duration });
+                pureText += text;
+            }
+        }
+        else {
+            pureText += part;
+        }
+        wordTagRxp.lastIndex = 0;
+    }
+    return { words, pureText };
 };
 
 const tags = {
@@ -209,9 +198,11 @@ class Lyric {
                                 timeArr.unshift('0');
                         if (timeArr[2].includes('.'))
                             timeArr.splice(2, 1, ...timeArr[2].split('.'));
+                        const { words, pureText } = parseWordLyric(text);
                         linesMap[timeStr] = {
                             time: parseInt(timeArr[0]) * 60 * 60 * 1000 + parseInt(timeArr[1]) * 60 * 1000 + parseInt(timeArr[2]) * 1000 + parseInt(timeArr[3] || '0'),
-                            text,
+                            text: pureText,
+                            words,
                             extendedLyrics: [],
                         };
                     }
@@ -221,9 +212,7 @@ class Lyric {
         for (const lrc of this.extendedLyrics)
             parseExtendedLyric(linesMap, lrc);
         this.lines = Object.values(linesMap);
-        this.lines.sort((a, b) => {
-            return a.time - b.time;
-        });
+        this.lines.sort((a, b) => a.time - b.time);
         this.maxLine = this.lines.length - 1;
     }
     _currentTime() {
@@ -244,7 +233,6 @@ class Lyric {
     }
     _refresh() {
         this.curLineNum++;
-        // console.log('curLineNum time', this.lines[this.curLineNum].time)
         if (this.curLineNum >= this.maxLine) {
             this._handleMaxLine();
             return;
@@ -283,7 +271,6 @@ class Lyric {
         this.isPlay = true;
         this._performanceTime = getNow() - Math.trunc(this.tags.offset + this.offset);
         this._startTime = curTime;
-        // this._offset = this.tags.offset + this.offset
         this.curLineNum = this._findCurLineNum(this._currentTime()) - 1;
         this._refresh();
     }
@@ -308,8 +295,7 @@ class Lyric {
             return;
         this.play(this._currentTime());
     }
-    setLyric(lyric, extendedLyrics) {
-        // console.log(extendedLyrics)
+    setLyric(lyric, extendedLyrics = []) {
         if (this.isPlay)
             this.pause();
         this.lyric = lyric;
