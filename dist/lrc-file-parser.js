@@ -115,6 +115,7 @@ const tags = {
 };
 class Lyric {
     lyric;
+    lxlyric;
     extendedLyrics;
     tags;
     lines;
@@ -128,8 +129,9 @@ class Lyric {
     _playbackRate;
     _performanceTime;
     _startTime;
-    constructor({ lyric = '', extendedLyrics = [], offset = 150, playbackRate = 1, onPlay = noop, onSetLyric = noop, isRemoveBlankLine = true, }) {
+    constructor({ lyric = '', lxlyric = '', extendedLyrics = [], offset = 150, playbackRate = 1, onPlay = noop, onSetLyric = noop, isRemoveBlankLine = true, }) {
         this.lyric = lyric;
+        this.lxlyric = lxlyric;
         this.extendedLyrics = extendedLyrics;
         this.tags = { ...tags };
         this.lines = [];
@@ -148,6 +150,8 @@ class Lyric {
     _init() {
         if (this.lyric == null)
             this.lyric = '';
+        if (this.lxlyric == null)
+            this.lxlyric = '';
         if (this.extendedLyrics == null)
             this.extendedLyrics = [];
         this._initTag();
@@ -200,13 +204,37 @@ class Lyric {
                                 timeArr.unshift('0');
                         if (timeArr[2].includes('.'))
                             timeArr.splice(2, 1, ...timeArr[2].split('.'));
-                        const { words, pureText } = parseWordLyric(text);
                         linesMap[timeStr] = {
                             time: parseInt(timeArr[0]) * 60 * 60 * 1000 + parseInt(timeArr[1]) * 60 * 1000 + parseInt(timeArr[2]) * 1000 + parseInt(timeArr[3] || '0'),
-                            text: pureText,
-                            words,
+                            text: text,
+                            words: [],
                             extendedLyrics: [],
                         };
+                    }
+                }
+            }
+        }
+        if (this.lxlyric) {
+            const lxLines = this.lxlyric.split(/\r\n|\n|\r/);
+            for (let i = 0; i < lxLines.length; i++) {
+                const line = lxLines[i].trim();
+                let result = timeFieldExp.exec(line);
+                if (result) {
+                    const timeField = result[0];
+                    const rawText = line.replace(timeFieldExp, '').trim();
+                    if (rawText) {
+                        const times = timeField.match(timeExp);
+                        if (times == null)
+                            continue;
+                        for (let time of times) {
+                            const timeStr = formatTimeLabel(time);
+                            const targetLine = linesMap[timeStr];
+                            if (targetLine) {
+                                const { words, pureText } = parseWordLyric(rawText);
+                                targetLine.words = words;
+                                targetLine.text = pureText;
+                            }
+                        }
                     }
                 }
             }
@@ -297,10 +325,11 @@ class Lyric {
             return;
         this.play(this._currentTime());
     }
-    setLyric(lyric, extendedLyrics = []) {
+    setLyric(lyric, lxlyric = '', extendedLyrics = []) {
         if (this.isPlay)
             this.pause();
         this.lyric = lyric;
+        this.lxlyric = lxlyric;
         this.extendedLyrics = extendedLyrics;
         this._init();
     }

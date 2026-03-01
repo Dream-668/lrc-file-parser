@@ -7,6 +7,7 @@ interface Tags extends Record<Exclude<TagMapKeys, 'offset'>, string> {
 }
 export default class Lyric {
     lyric: NonNullableOptions['lyric'];
+    lxlyric: NonNullableOptions['lxlyric'];
     extendedLyrics: NonNullableOptions['extendedLyrics'];
     tags: Tags;
     lines: Lines;
@@ -20,7 +21,7 @@ export default class Lyric {
     private _playbackRate;
     private _performanceTime;
     private _startTime;
-    constructor({ lyric, extendedLyrics, offset, playbackRate, onPlay, onSetLyric, isRemoveBlankLine, }: Options);
+    constructor({ lyric, lxlyric, extendedLyrics, offset, playbackRate, onPlay, onSetLyric, isRemoveBlankLine, }: Options);
     private _init;
     private _initTag;
     private _initLines;
@@ -31,6 +32,6 @@ export default class Lyric {
     play(curTime?: number): void;
     pause(): void;
     setPlaybackRate(playbackRate: NonNullableOptions['playbackRate']): void;
-    setLyric(lyric: NonNullableOptions['lyric'], extendedLyrics?: NonNullableOptions['extendedLyrics']): void;
+    setLyric(lyric: NonNullableOptions['lyric'], lxlyric?: NonNullableOptions['lxlyric'], extendedLyrics?: NonNullableOptions['extendedLyrics']): void;
 }
 export type * from '../types/common';

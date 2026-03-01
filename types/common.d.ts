@@ -1,3 +1,4 @@
+// types/common.ts
 export interface Word {
   text: string
   start: number
@@ -20,5 +21,6 @@ export interface Options {
   playbackRate?: number
   isRemoveBlankLine?: boolean
   lyric?: string
+  lxlyric?: string
   extendedLyrics?: string[]
 }

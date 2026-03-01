@@ -17,6 +17,7 @@ const tags = {
 
 export default class Lyric {
   lyric: NonNullableOptions['lyric']
+  lxlyric: NonNullableOptions['lxlyric']
   extendedLyrics: NonNullableOptions['extendedLyrics']
   tags: Tags
   lines: Lines
@@ -33,6 +34,7 @@ export default class Lyric {
 
   constructor({
     lyric = '',
+    lxlyric = '',
     extendedLyrics = [],
     offset = 150,
     playbackRate = 1,
@@ -41,6 +43,7 @@ export default class Lyric {
     isRemoveBlankLine = true,
   }: Options) {
     this.lyric = lyric
+    this.lxlyric = lxlyric
     this.extendedLyrics = extendedLyrics
     this.tags = { ...tags }
     this.lines = []
@@ -59,6 +62,7 @@ export default class Lyric {
 
   private _init() {
     if (this.lyric == null) this.lyric = ''
+    if (this.lxlyric == null) this.lxlyric = ''
     if (this.extendedLyrics == null) this.extendedLyrics = []
     this._initTag()
     this._initLines()
@@ -107,13 +111,36 @@ export default class Lyric {
             else if (timeArr.length < 3) for (let i = 3 - timeArr.length; i--;) timeArr.unshift('0')
             if (timeArr[2].includes('.')) timeArr.splice(2, 1, ...timeArr[2].split('.'))
 
-            const { words, pureText } = parseWordLyric(text)
-
             linesMap[timeStr] = {
               time: parseInt(timeArr[0]) * 60 * 60 * 1000 + parseInt(timeArr[1]) * 60 * 1000 + parseInt(timeArr[2]) * 1000 + parseInt(timeArr[3] || '0'),
-              text: pureText,
-              words,
+              text: text,
+              words: [],
               extendedLyrics: [],
+            }
+          }
+        }
+      }
+    }
+
+    if (this.lxlyric) {
+      const lxLines = this.lxlyric.split(/\r\n|\n|\r/)
+      for (let i = 0; i < lxLines.length; i++) {
+        const line = lxLines[i].trim()
+        let result = timeFieldExp.exec(line)
+        if (result) {
+          const timeField = result[0]
+          const rawText = line.replace(timeFieldExp, '').trim()
+          if (rawText) {
+            const times = timeField.match(timeExp)
+            if (times == null) continue
+            for (let time of times) {
+              const timeStr = formatTimeLabel(time)
+              const targetLine = linesMap[timeStr]
+              if (targetLine) {
+                const { words, pureText } = parseWordLyric(rawText)
+                targetLine.words = words
+                targetLine.text = pureText
+              }
             }
           }
         }
@@ -207,9 +234,10 @@ export default class Lyric {
     this.play(this._currentTime())
   }
 
-  setLyric(lyric: NonNullableOptions['lyric'], extendedLyrics: NonNullableOptions['extendedLyrics'] = []) {
+  setLyric(lyric: NonNullableOptions['lyric'], lxlyric: NonNullableOptions['lxlyric'] = '', extendedLyrics: NonNullableOptions['extendedLyrics'] = []) {
     if (this.isPlay) this.pause()
     this.lyric = lyric
+    this.lxlyric = lxlyric
     this.extendedLyrics = extendedLyrics
     this._init()
   }
