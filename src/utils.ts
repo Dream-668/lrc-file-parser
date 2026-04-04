@@ -24,7 +24,7 @@ export const timeoutTools = {
   thresholdTime: 200,
 
   run() {
-    this.animationFrameId = window.requestAnimationFrame(() => {
+    this.animationFrameId = requestAnimationFrame(() => {
       this.animationFrameId = null
       let diff = this.invokeTime - getNow()
       if (diff > 0) {
@@ -47,11 +47,11 @@ export const timeoutTools = {
   },
   clear() {
     if (this.animationFrameId) {
-      window.cancelAnimationFrame(this.animationFrameId)
+      cancelAnimationFrame(this.animationFrameId)
       this.animationFrameId = null
     }
     if (this.timeoutId) {
-      window.clearTimeout(this.timeoutId)
+      clearTimeout(this.timeoutId)
       this.timeoutId = null
     }
     this.callback = null
@@ -67,6 +67,16 @@ export const formatTimeLabel = (label: string) => {
     .replace(t_rxp_3, '.$1')
 }
 
+const lxWordTimeTagRxp = /<[-\d]+,[-\d]+(?:,[-\d]+)?>/g
+const qrcWordTimeTagRxp = /\(\d+,\d+(?:,\d+)?\)/g
+
+const normalizeExtendedLyricText = (text: string) => {
+  return text
+    .replace(lxWordTimeTagRxp, '')
+    .replace(qrcWordTimeTagRxp, '')
+    .trim()
+}
+
 export const parseExtendedLyric = (lrcLinesMap: Record<string, Line>, extendedLyric: string) => {
   const extendedLines = extendedLyric.split(/\r\n|\n|\r/)
   for (let i = 0; i < extendedLines.length; i++) {
@@ -74,15 +84,15 @@ export const parseExtendedLyric = (lrcLinesMap: Record<string, Line>, extendedLy
     let result = timeFieldExp.exec(line)
     if (result) {
       const timeField = result[0]
-      const text = line.replace(timeFieldExp, '').trim()
-      if (text) {
-        const times = timeField.match(timeExp)
-        if (times == null) continue
-        for (let time of times) {
-          const timeStr = formatTimeLabel(time)
-          const targetLine = lrcLinesMap[timeStr]
-          if (targetLine) targetLine.extendedLyrics.push(text)
-        }
+      let text = line.replace(timeFieldExp, '').trim()
+      text = normalizeExtendedLyricText(text)
+      if (!text) continue
+      const times = timeField.match(timeExp)
+      if (times == null) continue
+      for (let time of times) {
+        const timeStr = formatTimeLabel(time)
+        const targetLine = lrcLinesMap[timeStr]
+        if (targetLine) targetLine.extendedLyrics.push(text)
       }
     }
   }

@@ -25,6 +25,8 @@ export default class Lyric {
   onSetLyric: NonNullableOptions['onSetLyric']
   isPlay: boolean
   curLineNum: number
+  curWordIndex: number
+  curWordProgress: number
   maxLine: number
   offset: NonNullableOptions['offset']
   isRemoveBlankLine: NonNullableOptions['isRemoveBlankLine']
@@ -51,6 +53,8 @@ export default class Lyric {
     this.onSetLyric = onSetLyric
     this.isPlay = false
     this.curLineNum = 0
+    this.curWordIndex = -1
+    this.curWordProgress = 0
     this.maxLine = 0
     this.offset = offset
     this.isRemoveBlankLine = isRemoveBlankLine
@@ -164,8 +168,29 @@ export default class Lyric {
     return length - 1
   }
 
+  private _getWordState(line: Line, currentTime: number): { index: number; progress: number } {
+    if (!line.words.length) return { index: -1, progress: 0 }
+    const elapsed = currentTime - line.time
+    if (elapsed <= 0) return { index: -1, progress: 0 }
+    for (let i = 0; i < line.words.length; i++) {
+      const w = line.words[i]
+      const wordStart = w.start
+      const wordEnd = w.start + w.duration
+      if (elapsed < wordStart) {
+        return { index: i - 1, progress: 1 }
+      }
+      if (elapsed <= wordEnd) {
+        const progress = w.duration > 0 ? (elapsed - wordStart) / w.duration : 1
+        return { index: i, progress: Math.min(Math.max(progress, 0), 1) }
+      }
+    }
+    return { index: line.words.length - 1, progress: 1 }
+  }
+
   private _handleMaxLine() {
-    this.onPlay(this.curLineNum, this.lines[this.curLineNum].text)
+    this.curWordIndex = -1
+    this.curWordProgress = 0
+    this.onPlay(this.curLineNum, this.lines[this.curLineNum].text, -1, 0)
     this.pause()
   }
 
@@ -189,7 +214,10 @@ export default class Lyric {
             this._refresh()
           }, delay)
         }
-        this.onPlay(this.curLineNum, curLine.text)
+        const { index, progress } = this._getWordState(curLine, currentTime)
+        this.curWordIndex = index
+        this.curWordProgress = progress
+        this.onPlay(this.curLineNum, curLine.text, this.curWordIndex, this.curWordProgress)
       } else {
         let newCurLineNum = this._findCurLineNum(currentTime, this.curLineNum + 1)
         if (newCurLineNum > this.curLineNum) this.curLineNum = newCurLineNum - 1
@@ -220,10 +248,23 @@ export default class Lyric {
     this.isPlay = false
     timeoutTools.clear()
     if (this.curLineNum === this.maxLine) return
-    const curLineNum = this._findCurLineNum(this._currentTime())
+    const curTime = this._currentTime()
+    const curLineNum = this._findCurLineNum(curTime)
     if (this.curLineNum !== curLineNum) {
       this.curLineNum = curLineNum
-      this.onPlay(curLineNum, this.lines[curLineNum].text)
+      const line = this.lines[curLineNum]
+      const { index, progress } = this._getWordState(line, curTime)
+      this.curWordIndex = index
+      this.curWordProgress = progress
+      this.onPlay(curLineNum, line.text, this.curWordIndex, this.curWordProgress)
+    } else {
+      const line = this.lines[this.curLineNum]
+      const { index, progress } = this._getWordState(line, curTime)
+      if (index !== this.curWordIndex || progress !== this.curWordProgress) {
+        this.curWordIndex = index
+        this.curWordProgress = progress
+        this.onPlay(this.curLineNum, line.text, this.curWordIndex, this.curWordProgress)
+      }
     }
   }
 
@@ -239,6 +280,8 @@ export default class Lyric {
     this.lyric = lyric
     this.lxlyric = lxlyric
     this.extendedLyrics = extendedLyrics
+    this.curWordIndex = -1
+    this.curWordProgress = 0
     this._init()
   }
 }

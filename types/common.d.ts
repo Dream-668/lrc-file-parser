@@ -1,4 +1,3 @@
-// types/common.ts
 export interface Word {
   text: string
   start: number
@@ -15,7 +14,7 @@ export interface Line {
 export type Lines = Line[]
 
 export interface Options {
-  onPlay?: (line: number, text: string) => void
+  onPlay?: (line: number, text: string, wordIndex: number, wordProgress: number) => void
   onSetLyric?: (lines: Lines) => void
   offset?: number
   playbackRate?: number

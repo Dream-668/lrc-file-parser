@@ -15,6 +15,8 @@ export default class Lyric {
     onSetLyric: NonNullableOptions['onSetLyric'];
     isPlay: boolean;
     curLineNum: number;
+    curWordIndex: number;
+    curWordProgress: number;
     maxLine: number;
     offset: NonNullableOptions['offset'];
     isRemoveBlankLine: NonNullableOptions['isRemoveBlankLine'];
@@ -27,6 +29,7 @@ export default class Lyric {
     private _initLines;
     private _currentTime;
     private _findCurLineNum;
+    private _getWordState;
     private _handleMaxLine;
     private _refresh;
     play(curTime?: number): void;
