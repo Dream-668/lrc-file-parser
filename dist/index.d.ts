@@ -23,6 +23,7 @@ export default class Lyric {
     private _playbackRate;
     private _performanceTime;
     private _startTime;
+    private _tickerId;
     constructor({ lyric, lxlyric, extendedLyrics, offset, playbackRate, onPlay, onSetLyric, isRemoveBlankLine, }: Options);
     private _init;
     private _initTag;
@@ -30,6 +31,9 @@ export default class Lyric {
     private _currentTime;
     private _findCurLineNum;
     private _getWordState;
+    private _updateCurrentLineState;
+    private _startTicker;
+    private _stopTicker;
     private _handleMaxLine;
     private _refresh;
     play(curTime?: number): void;

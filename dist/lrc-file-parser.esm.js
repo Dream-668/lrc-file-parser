@@ -138,6 +138,7 @@ class Lyric {
     _playbackRate;
     _performanceTime;
     _startTime;
+    _tickerId = null;
     constructor({ lyric = '', lxlyric = '', extendedLyrics = [], offset = 150, playbackRate = 1, onPlay = noop, onSetLyric = noop, isRemoveBlankLine = true, }) {
         this.lyric = lyric;
         this.lxlyric = lxlyric;
@@ -290,6 +291,38 @@ class Lyric {
         }
         return { index: line.words.length - 1, progress: 1 };
     }
+    _updateCurrentLineState() {
+        if (!this.isPlay)
+            return;
+        const curTime = this._currentTime();
+        let lineNum = this._findCurLineNum(curTime);
+        if (lineNum < 0)
+            lineNum = 0;
+        const line = this.lines[lineNum];
+        const { index, progress } = this._getWordState(line, curTime);
+        if (lineNum !== this.curLineNum || index !== this.curWordIndex || progress !== this.curWordProgress) {
+            this.curLineNum = lineNum;
+            this.curWordIndex = index;
+            this.curWordProgress = progress;
+            this.onPlay(this.curLineNum, line.text, this.curWordIndex, this.curWordProgress);
+        }
+    }
+    _startTicker() {
+        this._stopTicker();
+        const tick = () => {
+            if (!this.isPlay)
+                return;
+            this._updateCurrentLineState();
+            this._tickerId = setTimeout(tick, 50);
+        };
+        this._tickerId = setTimeout(tick, 50);
+    }
+    _stopTicker() {
+        if (this._tickerId) {
+            clearTimeout(this._tickerId);
+            this._tickerId = null;
+        }
+    }
     _handleMaxLine() {
         this.curWordIndex = -1;
         this.curWordProgress = 0;
@@ -341,11 +374,13 @@ class Lyric {
         this._startTime = curTime;
         this.curLineNum = this._findCurLineNum(this._currentTime()) - 1;
         this._refresh();
+        this._startTicker();
     }
     pause() {
         if (!this.isPlay)
             return;
         this.isPlay = false;
+        this._stopTicker();
         timeoutTools.clear();
         if (this.curLineNum === this.maxLine)
             return;
