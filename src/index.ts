@@ -172,11 +172,14 @@ export default class Lyric {
     if (!line.words.length) return { index: -1, progress: 0 }
     const elapsed = currentTime - line.time
     if (elapsed <= 0) return { index: -1, progress: 0 }
+
     for (let i = 0; i < line.words.length; i++) {
       const w = line.words[i]
       const wordStart = w.start
       const wordEnd = w.start + w.duration
+
       if (elapsed < wordStart) {
+        if (i === 0) return { index: -1, progress: 0 }
         return { index: i - 1, progress: 1 }
       }
       if (elapsed <= wordEnd) {
@@ -196,10 +199,12 @@ export default class Lyric {
 
   private _refresh() {
     this.curLineNum++
-    if (this.curLineNum >= this.maxLine) { this._handleMaxLine(); return }
+    if (this.curLineNum >= this.maxLine) {
+      this._handleMaxLine()
+      return
+    }
 
     let curLine = this.lines[this.curLineNum]
-
     const currentTime = this._currentTime()
     const driftTime = currentTime - curLine.time
 
@@ -239,7 +244,6 @@ export default class Lyric {
     this._startTime = curTime
 
     this.curLineNum = this._findCurLineNum(this._currentTime()) - 1
-
     this._refresh()
   }
 
@@ -250,21 +254,13 @@ export default class Lyric {
     if (this.curLineNum === this.maxLine) return
     const curTime = this._currentTime()
     const curLineNum = this._findCurLineNum(curTime)
-    if (this.curLineNum !== curLineNum) {
+    const line = this.lines[curLineNum]
+    const { index, progress } = this._getWordState(line, curTime)
+    if (this.curLineNum !== curLineNum || index !== this.curWordIndex || progress !== this.curWordProgress) {
       this.curLineNum = curLineNum
-      const line = this.lines[curLineNum]
-      const { index, progress } = this._getWordState(line, curTime)
       this.curWordIndex = index
       this.curWordProgress = progress
-      this.onPlay(curLineNum, line.text, this.curWordIndex, this.curWordProgress)
-    } else {
-      const line = this.lines[this.curLineNum]
-      const { index, progress } = this._getWordState(line, curTime)
-      if (index !== this.curWordIndex || progress !== this.curWordProgress) {
-        this.curWordIndex = index
-        this.curWordProgress = progress
-        this.onPlay(this.curLineNum, line.text, this.curWordIndex, this.curWordProgress)
-      }
+      this.onPlay(this.curLineNum, line.text, this.curWordIndex, this.curWordProgress)
     }
   }
 
