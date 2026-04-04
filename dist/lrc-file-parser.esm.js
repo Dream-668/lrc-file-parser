@@ -279,6 +279,8 @@ class Lyric {
             const wordStart = w.start;
             const wordEnd = w.start + w.duration;
             if (elapsed < wordStart) {
+                if (i === 0)
+                    return { index: -1, progress: 0 };
                 return { index: i - 1, progress: 1 };
             }
             if (elapsed <= wordEnd) {
@@ -349,22 +351,13 @@ class Lyric {
             return;
         const curTime = this._currentTime();
         const curLineNum = this._findCurLineNum(curTime);
-        if (this.curLineNum !== curLineNum) {
+        const line = this.lines[curLineNum];
+        const { index, progress } = this._getWordState(line, curTime);
+        if (this.curLineNum !== curLineNum || index !== this.curWordIndex || progress !== this.curWordProgress) {
             this.curLineNum = curLineNum;
-            const line = this.lines[curLineNum];
-            const { index, progress } = this._getWordState(line, curTime);
             this.curWordIndex = index;
             this.curWordProgress = progress;
-            this.onPlay(curLineNum, line.text, this.curWordIndex, this.curWordProgress);
-        }
-        else {
-            const line = this.lines[this.curLineNum];
-            const { index, progress } = this._getWordState(line, curTime);
-            if (index !== this.curWordIndex || progress !== this.curWordProgress) {
-                this.curWordIndex = index;
-                this.curWordProgress = progress;
-                this.onPlay(this.curLineNum, line.text, this.curWordIndex, this.curWordProgress);
-            }
+            this.onPlay(this.curLineNum, line.text, this.curWordIndex, this.curWordProgress);
         }
     }
     setPlaybackRate(playbackRate) {
