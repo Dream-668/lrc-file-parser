@@ -197,6 +197,7 @@ export default class Lyric {
     let lineNum = this._findCurLineNum(curTime)
     if (lineNum < 0) lineNum = 0
     const line = this.lines[lineNum]
+    if (!line) return
     const { index, progress } = this._getWordState(line, curTime)
     if (lineNum !== this.curLineNum || index !== this.curWordIndex || progress !== this.curWordProgress) {
       this.curLineNum = lineNum
@@ -226,23 +227,37 @@ export default class Lyric {
   private _handleMaxLine() {
     this.curWordIndex = -1
     this.curWordProgress = 0
-    this.onPlay(this.curLineNum, this.lines[this.curLineNum].text, -1, 0)
+    const lastLine = this.lines[this.curLineNum]
+    if (lastLine) {
+      this.onPlay(this.curLineNum, lastLine.text, -1, 0)
+    }
     this.pause()
   }
 
   private _refresh() {
+    if (!this.lines.length) {
+      this.pause()
+      return
+    }
+
     this.curLineNum++
     if (this.curLineNum >= this.maxLine) {
       this._handleMaxLine()
       return
     }
 
-    let curLine = this.lines[this.curLineNum]
+    const curLine = this.lines[this.curLineNum]
+    if (!curLine) return
+
     const currentTime = this._currentTime()
     const driftTime = currentTime - curLine.time
 
     if (driftTime >= 0 || this.curLineNum === 0) {
-      let nextLine = this.lines[this.curLineNum + 1]
+      const nextLine = this.lines[this.curLineNum + 1]
+      if (!nextLine) {
+        this._handleMaxLine()
+        return
+      }
       const delay = (nextLine.time - curLine.time - driftTime) / this._playbackRate
 
       if (delay > 0) {
@@ -290,6 +305,7 @@ export default class Lyric {
     const curTime = this._currentTime()
     const curLineNum = this._findCurLineNum(curTime)
     const line = this.lines[curLineNum]
+    if (!line) return
     const { index, progress } = this._getWordState(line, curTime)
     if (this.curLineNum !== curLineNum || index !== this.curWordIndex || progress !== this.curWordProgress) {
       this.curLineNum = curLineNum
